@@ -1,0 +1,10 @@
+Use your built-in image generation tool. Transparent background: false.
+
+Create ONE finished wide landscape key-art illustration, approximately 1536 x 1024 pixels (3:2 landscape), for a two-player Korean strategy board game called Point Omok (gomoku where every stone is won by a secret points auction). Do NOT render the game name or any text.
+Use case: stylized-concept. Asset type: game key art for a lobby screen.
+Scene: a polished golden kaya-wood gomoku board seen from a dramatic three-quarter high angle, its black grid lines crisp. A tense mid-game position of glossy black slate stones and white shell stones is scattered across the board. At the center of attention, exactly three stones sit in a short straight diagonal row and they are translucent pale sky-blue glass, softly glowing from within, as if still undecided between black and white. Beside the board edge, two small neat stacks of brass betting chips catch the light, one stack slightly taller than the other.
+Style: moody painterly illustration, dramatic chiaroscuro, a single warm brass spotlight from above, deep dark plum-indigo shadows around #1c1926, tense secretive game-show atmosphere, refined visible brushwork, cinematic depth of field.
+Composition: keep the entire left third significantly darker, quieter and emptier, with broad shadow negative space for a future title overlay. Place the board and the glowing sky-blue trio in the right two-thirds. The sky-blue trio is the brightest focal point; the brass chips are a smaller secondary focal point. Full-bleed single image, no panels.
+Constraints: exactly one image; no people, no hands, no faces; no text, letters, numbers, logos, watermarks or borders; no playing cards, no dice, no screens.
+
+Save the final image as a PNG file at: ./key.png (in the current working directory). Then reply with just the saved path.

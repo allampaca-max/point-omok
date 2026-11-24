@@ -1,0 +1,6 @@
+Use your built-in image generation tool. Transparent background: false.
+
+Create ONE square texture image, approximately 1024 x 1024 pixels: a perfectly flat, straight-down orthographic photo-real surface of premium golden kaya wood, as used for a traditional gomoku / go board top. Fine, straight, tight vertical grain, warm honey-gold color (around #d9a85a with subtle darker streaks), satin finish, completely even soft lighting with no vignette, no shadows, no glare hotspots.
+Constraints: the wood surface fills the whole frame edge to edge; absolutely no grid lines, no stones, no markings, no knots, no text, no borders, no perspective. It should tile reasonably well vertically.
+
+Save the final image as a PNG file at: ./wood.png (in the current working directory). Then reply with just the saved path.
