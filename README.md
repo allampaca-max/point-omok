@@ -1,12 +1,19 @@
-# 포인트오목
+# 포인트오목 · Point Omok
 
 두 사람이 각자 기기에서 하는 베팅 오목. 선택 플레이어가 고른 세 자리에 몰래 포인트를 걸고, 더 많이 건 쪽의 돌이 놓입니다.
 
-**▶ 바로 하기: https://allampaca-max.github.io/point-omok/**
+**▶ 바로 하기 / Play: https://allampaca-max.github.io/point-omok/**
 
 - 게임 서버가 필요 없습니다. 브라우저끼리 WebRTC(PeerJS)로 직접 연결됩니다.
 - 같은 집 와이파이에서도, 서로 다른 곳에서도 **방 코드 4자리**만 있으면 됩니다.
 - 혼자 연습(봇) 모드, 일시정지, 이모지, 끊김 후 자동 재연결, 게임 후 **스냅샷**(모든 베팅 공개·라운드별 다시보기)을 지원합니다.
+- **한국어 / English:** 첫 화면 오른쪽 위에서 바꿉니다(게임 중에는 ⋯ 메뉴). 처음에는 브라우저 언어를 따르고, 두 사람이 서로 다른 언어로 해도 됩니다.
+
+## English
+
+Two-player gomoku where you buy your stones. Each round the picker chooses three empty points in a line; both players secretly split their points across them, and the higher bid gets the stone (ties go to the non-picker). Unspent points carry over at half value. Exactly five in a row wins.
+
+One player taps **Create room** and sends the 4-character code or link; the other taps **Join room**. No accounts or server needed, and each player can use their own language (toggle at the top right of the start screen, or in the ⋯ menu during a game). Try **Practice** to learn against a bot.
 
 ## GitHub Pages로 올리기 (추천)
 
@@ -62,6 +69,7 @@ python3 -m http.server 8790 --bind 0.0.0.0 --directory point-omok
 | `engine.js` | 규칙 엔진(DOM 없음) |
 | `bot.js` | 연습용 봇 |
 | `app.js` | 진행·네트워크·그리기 |
+| `i18n.js` | 한/영 문구 |
 | `assets/` | 이미지(Codex로 생성, 원본 PNG와 프롬프트는 `assets/src/`) |
 | `tests/` | 규칙 테스트. 브라우저로 `tests/index.html`을 열거나 아래 명령으로 실행 |
 

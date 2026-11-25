@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#14121b">
-<title>포인트오목</title>
+<title>포인트오목 · Point Omok</title>
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,88 +17,92 @@
 <section id="lobby" class="screen">
   <header class="hero">
     <img class="hero-art" src="assets/key.jpg" alt="">
+    <div class="lang-toggle" role="group" data-i18n-aria="lang.label">
+      <button type="button" data-act="lang" data-lang="ko">한국어</button>
+      <button type="button" data-act="lang" data-lang="en">English</button>
+    </div>
     <div class="hero-copy">
-      <div class="eyebrow">2인 베팅 오목</div>
-      <h1>포인트오목</h1>
-      <p class="sub">돌은 두는 게 아니라 사는 것. 상대가 고른 세 자리에 몰래 포인트를 걸고, 더 많이 건 쪽의 돌이 놓입니다.</p>
+      <div class="eyebrow" data-i18n="hero.eyebrow">2인 베팅 오목</div>
+      <h1 data-i18n="game.name">포인트오목</h1>
+      <p class="sub" data-i18n="hero.sub"></p>
     </div>
   </header>
 
   <div class="lobby-body">
     <div class="card resume" id="resume-card" hidden>
-      <div><b>진행 중인 방 <span id="resume-code"></span></b><br><small id="resume-meta"></small></div>
+      <div><b><span data-i18n="resume.label">진행 중인 방</span> <span id="resume-code"></span></b><br><small id="resume-meta"></small></div>
       <div class="row">
-        <button class="btn primary" data-act="resume">이어하기</button>
-        <button class="btn ghost" data-act="discard-resume">버리기</button>
+        <button class="btn primary" data-act="resume" data-i18n="resume.go">이어하기</button>
+        <button class="btn ghost" data-act="discard-resume" data-i18n="resume.discard">버리기</button>
       </div>
     </div>
 
     <label class="field name-field">
-      <span>내 이름</span>
-      <input id="name" maxlength="12" placeholder="예: 영원" autocomplete="nickname">
+      <span data-i18n="name.label">내 이름</span>
+      <input id="name" maxlength="12" data-i18n-ph="name.ph" autocomplete="nickname">
     </label>
 
     <div class="choices">
-      <button class="choice primary" data-act="show-create"><b>방 만들기</b><small>코드를 상대에게 알려 주세요</small></button>
-      <button class="choice" data-act="show-join"><b>참가하기</b><small>받은 코드로 입장</small></button>
-      <button class="choice" data-act="show-solo"><b>혼자 연습</b><small>봇과 한 판</small></button>
+      <button class="choice primary" data-act="show-create"><b data-i18n="choice.create">방 만들기</b><small data-i18n="choice.createSub"></small></button>
+      <button class="choice" data-act="show-join"><b data-i18n="choice.join">참가하기</b><small data-i18n="choice.joinSub"></small></button>
+      <button class="choice" data-act="show-solo"><b data-i18n="choice.solo">혼자 연습</b><small data-i18n="choice.soloSub"></small></button>
     </div>
 
     <form id="settings-form" class="card" hidden>
-      <h2 id="settings-title">방 설정</h2>
+      <h2 id="settings-title"></h2>
       <fieldset class="seg-field">
-        <legend>판 크기</legend>
+        <legend data-i18n="set.size">판 크기</legend>
         <div class="seg">
           <label><input type="radio" name="size" value="15" checked><span>15 × 15</span></label>
           <label><input type="radio" name="size" value="19"><span>19 × 19</span></label>
         </div>
       </fieldset>
       <fieldset class="seg-field">
-        <legend>자리 선택 시간</legend>
+        <legend data-i18n="set.pick">자리 선택 시간</legend>
         <div class="seg">
-          <label><input type="radio" name="selectSec" value="60"><span>60초</span></label>
-          <label><input type="radio" name="selectSec" value="90" checked><span>90초</span></label>
-          <label><input type="radio" name="selectSec" value="120"><span>120초</span></label>
+          <label><input type="radio" name="selectSec" value="60"><span>60<i data-i18n="unit.sec">초</i></span></label>
+          <label><input type="radio" name="selectSec" value="90" checked><span>90<i data-i18n="unit.sec">초</i></span></label>
+          <label><input type="radio" name="selectSec" value="120"><span>120<i data-i18n="unit.sec">초</i></span></label>
         </div>
       </fieldset>
       <fieldset class="seg-field">
-        <legend>베팅 시간</legend>
+        <legend data-i18n="set.bet">베팅 시간</legend>
         <div class="seg">
-          <label><input type="radio" name="betSec" value="30"><span>30초</span></label>
-          <label><input type="radio" name="betSec" value="60" checked><span>60초</span></label>
-          <label><input type="radio" name="betSec" value="90"><span>90초</span></label>
+          <label><input type="radio" name="betSec" value="30"><span>30<i data-i18n="unit.sec">초</i></span></label>
+          <label><input type="radio" name="betSec" value="60" checked><span>60<i data-i18n="unit.sec">초</i></span></label>
+          <label><input type="radio" name="betSec" value="90"><span>90<i data-i18n="unit.sec">초</i></span></label>
         </div>
       </fieldset>
       <fieldset class="seg-field">
-        <legend>내 돌 <small>(흑이 1라운드에 자리를 고릅니다)</small></legend>
+        <legend><span data-i18n="set.color">내 돌</span> <small data-i18n="set.colorNote"></small></legend>
         <div class="seg">
-          <label><input type="radio" name="color" value="random" checked><span>랜덤</span></label>
-          <label><input type="radio" name="color" value="black"><span>흑</span></label>
-          <label><input type="radio" name="color" value="white"><span>백</span></label>
+          <label><input type="radio" name="color" value="random" checked><span data-i18n="pref.random">랜덤</span></label>
+          <label><input type="radio" name="color" value="black"><span data-i18n="color.b">흑</span></label>
+          <label><input type="radio" name="color" value="white"><span data-i18n="color.w">백</span></label>
         </div>
       </fieldset>
       <div class="row">
-        <button class="btn primary" type="submit" id="settings-submit">방 열기</button>
-        <button class="btn ghost" type="button" data-act="hide-forms">취소</button>
+        <button class="btn primary" type="submit" id="settings-submit"></button>
+        <button class="btn ghost" type="button" data-act="hide-forms" data-i18n="btn.cancel">취소</button>
       </div>
     </form>
 
     <form id="join-form" class="card" hidden>
-      <h2>참가하기</h2>
+      <h2 data-i18n="join.title">참가하기</h2>
       <label class="field">
-        <span>방 코드 (4자리)</span>
+        <span data-i18n="join.code">방 코드 (4자리)</span>
         <input id="join-code" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD" class="code-input">
       </label>
       <div class="row">
-        <button class="btn primary" type="submit">입장</button>
-        <button class="btn ghost" type="button" data-act="hide-forms">취소</button>
+        <button class="btn primary" type="submit" data-i18n="join.go">입장</button>
+        <button class="btn ghost" type="button" data-act="hide-forms" data-i18n="btn.cancel">취소</button>
       </div>
     </form>
 
     <nav class="links">
-      <button class="link" data-act="rules">규칙</button>
+      <button class="link" data-act="rules" data-i18n="link.rules">규칙</button>
       <span aria-hidden="true">·</span>
-      <button class="link" data-act="records">지난 게임 스냅샷</button>
+      <button class="link" data-act="records" data-i18n="link.records">지난 게임 스냅샷</button>
     </nav>
   </div>
 </section>
@@ -106,18 +110,18 @@
 <!-- ───────── 대기실 ───────── -->
 <section id="room" class="screen" hidden>
   <div class="room-card card">
-    <div class="eyebrow">방 코드</div>
+    <div class="eyebrow" data-i18n="room.code">방 코드</div>
     <div class="room-code" id="room-code">····</div>
     <div class="share" id="share-box">
-      <input id="share-link" readonly aria-label="초대 링크">
-      <button class="btn" data-act="copy-link">링크 복사</button>
+      <input id="share-link" readonly data-i18n-aria="room.linkAria">
+      <button class="btn" data-act="copy-link" data-i18n="room.copy">링크 복사</button>
     </div>
-    <p class="room-status" id="room-status">연결 중…</p>
+    <p class="room-status" id="room-status"></p>
     <ul class="room-players" id="room-players"></ul>
     <div class="room-settings" id="room-settings"></div>
     <div class="row center">
-      <button class="btn primary" data-act="start" id="start-btn" hidden disabled>게임 시작</button>
-      <button class="btn ghost" data-act="leave">나가기</button>
+      <button class="btn primary" data-act="start" id="start-btn" hidden disabled data-i18n="room.start">게임 시작</button>
+      <button class="btn ghost" data-act="leave" data-i18n="btn.leave">나가기</button>
     </div>
   </div>
 </section>
@@ -125,17 +129,18 @@
 <!-- ───────── 게임 ───────── -->
 <section id="game" class="screen" hidden>
   <header class="bar">
-    <div class="brand">포인트오목 <span class="chip" id="code-chip"></span></div>
+    <div class="brand"><span data-i18n="game.name">포인트오목</span> <span class="chip" id="code-chip"></span></div>
     <div class="bar-right">
       <span class="net" id="net"></span>
-      <button class="icon-btn" data-act="pause" id="pause-btn" title="일시정지" aria-label="일시정지">❚❚</button>
-      <button class="icon-btn" data-act="mute" id="mute-btn" title="소리" aria-label="소리 켜기/끄기">♪</button>
+      <button class="icon-btn" data-act="pause" id="pause-btn" data-i18n-aria="bar.pause">❚❚</button>
+      <button class="icon-btn" data-act="mute" id="mute-btn" data-i18n-title="bar.sound" data-i18n-aria="bar.sound">♪</button>
       <div class="menu-wrap">
-        <button class="icon-btn" data-act="menu" aria-label="메뉴" aria-haspopup="true">⋯</button>
+        <button class="icon-btn" data-act="menu" data-i18n-aria="menu.aria" aria-haspopup="true">⋯</button>
         <div class="menu" id="menu" hidden>
-          <button data-act="rules">규칙</button>
-          <button data-act="resign" id="resign-btn">기권</button>
-          <button data-act="leave">나가기</button>
+          <button data-act="rules" data-i18n="link.rules">규칙</button>
+          <button data-act="lang-flip" data-i18n="menu.lang">English</button>
+          <button data-act="resign" id="resign-btn" data-i18n="menu.resign">기권</button>
+          <button data-act="leave" data-i18n="btn.leave">나가기</button>
         </div>
       </div>
     </div>
@@ -144,7 +149,7 @@
   <div class="game-grid">
     <div class="board-col">
       <div class="board-wrap" id="board-wrap">
-        <svg id="board" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="오목판"></svg>
+        <svg id="board" xmlns="http://www.w3.org/2000/svg" role="img"></svg>
         <div class="board-overlay" id="overlay" hidden></div>
       </div>
     </div>
@@ -166,10 +171,10 @@
         <button data-act="emote" data-e="😏">😏</button>
         <button data-act="emote" data-e="😱">😱</button>
         <button data-act="emote" data-e="🤔">🤔</button>
-        <button data-act="emote" data-e="ㅋㅋ">ㅋㅋ</button>
+        <button data-act="emote" data-e="ㅋㅋ" data-i18n="emote.lol">ㅋㅋ</button>
       </div>
       <details class="log" id="log-box">
-        <summary>라운드 기록</summary>
+        <summary data-i18n="log.title">라운드 기록</summary>
         <ol id="log" reversed></ol>
       </details>
     </aside>
@@ -179,30 +184,14 @@
 <!-- ───────── 모달 ───────── -->
 <div class="modal" id="modal" hidden>
   <div class="modal-box" role="dialog" aria-modal="true">
-    <button class="modal-x icon-btn" data-act="close-modal" aria-label="닫기">✕</button>
+    <button class="modal-x icon-btn" data-act="close-modal" data-i18n-aria="btn.close">✕</button>
     <div id="modal-body"></div>
   </div>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<template id="rules-tpl">
-  <h2>포인트오목 규칙</h2>
-  <ol class="rules">
-    <li>매 라운드 <b>선택 → 베팅 → 착수</b> 순서로 진행합니다. 선택 플레이어는 라운드마다 번갈아 맡고, 흑이 먼저입니다.</li>
-    <li><b>선택:</b> 선택 플레이어는 제한 시간 안에 한 줄(가로·세로·대각선)로 이어진 <b>빈 자리 3개</b>를 고릅니다. 고른 자리에는 하늘색 돌이 놓입니다.</li>
-    <li><b>포인트:</b> 매 라운드 두 사람 모두 <b>10포인트</b>를 받습니다.</li>
-    <li><b>베팅:</b> 받은 포인트를 세 자리에 나눠 겁니다. 자리마다 <b>1포인트 이상</b>, 정수로만 걸 수 있습니다.</li>
-    <li><b>이월:</b> 쓰고 남은 포인트는 <b>절반만(내림)</b> 다음 라운드로 넘어갑니다. 5가 남으면 2가 넘어가 다음 라운드는 12포인트.</li>
-    <li><b>착수:</b> 자리마다 더 많이 건 사람의 돌 색이 입혀집니다. <b>같은 포인트</b>였다면 그 라운드의 선택 플레이어가 <b>아닌</b> 사람의 돌이 놓입니다.</li>
-    <li><b>비공개:</b> 상대가 건 포인트와 남은 포인트는 게임이 끝날 때까지 보이지 않습니다. 끝나면 스냅샷에서 모든 베팅이 공개됩니다.</li>
-    <li><b>승리:</b> 세 돌이 모두 놓인 뒤 <b>정확히 5개</b>가 이어지면 오목입니다(6개 이상은 오목이 아닙니다). 오목이 처음 생긴 라운드에 승부가 납니다.</li>
-    <li>그 라운드에 두 사람 모두 오목을 만들었다면 <b>오목 개수가 많은 쪽</b>, 개수도 같으면 <b>그 라운드 3점 중 2점 이상을 가져간 쪽</b>이 이깁니다.</li>
-    <li><b>시간 초과:</b> 자리 선택은 그때까지 고른 3점(없으면 무작위 3점)으로, 베팅은 그때까지 입력한 값(처음엔 1·1·1)으로 자동 확정됩니다.</li>
-    <li>더 고를 수 있는 3점이 없으면 무승부입니다.</li>
-  </ol>
-</template>
-
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="i18n.js"></script>
 <script src="engine.js"></script>
 <script src="bot.js"></script>
 <script src="app.js"></script>

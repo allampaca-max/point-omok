@@ -23,7 +23,10 @@
   const OPTIONS = Object.freeze({ size: [15, 19], selectSec: [60, 90, 120], betSec: [30, 60, 90] });
   const COLS = 'ABCDEFGHJKLMNOPQRST'; // 바둑식 표기(I 생략)
 
-  class RuleError extends Error {}
+  // 규칙 위반. code는 화면에서 i18n 'err.<code>'로 번역한다.
+  class RuleError extends Error {
+    constructor(code, params) { super(code); this.code = code; this.params = params || {}; }
+  }
 
   const idx = (size, x, y) => y * size + x;
   const xy = (size, i) => [i % size, Math.floor(i / size)];
@@ -151,10 +154,10 @@
   }
 
   function applySelect(state, seat, cells, auto) {
-    if (state.phase !== 'select') throw new RuleError('지금은 자리를 고르는 단계가 아닙니다.');
-    if (seat !== state.selector) throw new RuleError('이번 라운드의 선택 플레이어가 아닙니다.');
+    if (state.phase !== 'select') throw new RuleError('notSelect');
+    if (seat !== state.selector) throw new RuleError('notSelector');
     const t = emptyTriple(state.board, state.size, cells);
-    if (!t) throw new RuleError('한 줄로 이어진 빈 자리 3개를 골라 주세요.');
+    if (!t) throw new RuleError('badTriple');
     state.triple = t;
     state.selectAuto = !!auto;
     state.bets = [null, null];
@@ -170,14 +173,15 @@
   }
 
   function validateBets(bets, balance) {
-    if (!Array.isArray(bets) || bets.length !== 3) return '세 자리 모두에 걸어야 합니다.';
+    if (!Array.isArray(bets) || bets.length !== 3) return { code: 'betsCount' };
     for (const b of bets) {
-      if (!Number.isInteger(b) || b < 1) return '자리마다 1포인트 이상, 정수로 걸어야 합니다.';
+      if (!Number.isInteger(b) || b < 1) return { code: 'betsMin' };
     }
-    if (sum(bets) > balance) return `가진 포인트(${balance})보다 많이 걸 수 없습니다.`;
+    if (sum(bets) > balance) return { code: 'betsOver', p: balance };
     return null;
   }
 
+  // 잘못된 베팅이면 { code, p } (i18n 'err.<code>'), 괜찮으면 null.
   // 시간 초과 시 제출할 베팅: 그때까지의 입력을 정리한다(빈 칸은 1, 넘치면 큰 칸부터 깎음).
   function autoBets(draft, balance) {
     const b = [0, 1, 2].map((k) => {
@@ -195,10 +199,10 @@
 
   // 베팅을 확정한다. 두 사람 모두 확정했으면 true.
   function applyBet(state, seat, bets, auto) {
-    if (state.phase !== 'bet') throw new RuleError('지금은 베팅 단계가 아닙니다.');
-    if (state.bets[seat]) throw new RuleError('이미 베팅을 확정했습니다.');
+    if (state.phase !== 'bet') throw new RuleError('notBet');
+    if (state.bets[seat]) throw new RuleError('already');
     const err = validateBets(bets, state.balance[seat]);
-    if (err) throw new RuleError(err);
+    if (err) throw new RuleError(err.code, err);
     state.bets[seat] = bets.slice();
     state.betAuto[seat] = !!auto;
     return !!(state.bets[0] && state.bets[1]);
@@ -240,7 +244,7 @@
 
   // 두 베팅이 모두 확정된 뒤 호출. 돌을 놓고, 이월을 계산하고, 승부를 판정한다.
   function resolveRound(state) {
-    if (state.phase !== 'bet' || !state.bets[0] || !state.bets[1]) throw new RuleError('아직 두 사람의 베팅이 끝나지 않았습니다.');
+    if (state.phase !== 'bet' || !state.bets[0] || !state.bets[1]) throw new RuleError('notReady');
     const other = 1 - state.selector;
     const ties = [];
     const winners = state.triple.map((cell, k) => {
@@ -280,7 +284,7 @@
   }
 
   function nextRound(state) {
-    if (state.phase !== 'reveal') throw new RuleError('다음 라운드로 넘어갈 수 없습니다.');
+    if (state.phase !== 'reveal') throw new RuleError('noNext');
     const last = state.history[state.history.length - 1];
     state.round += 1;
     state.selector = 1 - state.selector;
@@ -293,7 +297,7 @@
   }
 
   function resign(state, seat) {
-    if (state.phase === 'over') throw new RuleError('이미 끝난 게임입니다.');
+    if (state.phase === 'over') throw new RuleError('over');
     state.phase = 'over';
     state.result = { round: state.round, winner: 1 - seat, reason: 'resign', counts: [0, 0], lines: [[], []] };
   }

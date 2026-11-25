@@ -10,6 +10,7 @@
   'use strict';
   const PO = window.PO;
   const Bot = window.PointOmokBot;
+  const tr = (k, p) => window.I18N.t(k, p);
 
   const PEER_PREFIX = 'pointomok-v1-';
   const REVEAL_MS = 3800;  // 결과 공개 후 다음 라운드까지
@@ -95,7 +96,7 @@
       this.code = o.code || '';
       this.settings = PO.cleanSettings(o.settings);
       this.colorPref = o.colorPref || 'random';
-      this.names = [o.myName || '방장', ''];
+      this.names = [o.myName || '', ''];
       this.remote = o.remote;       // { send(msg), connected }
       this.onLocal = o.onLocal;     // 방장 자기 화면으로 보내는 함수
       this.persistOn = !!o.persist;
@@ -129,7 +130,7 @@
     destroy() { clearInterval(this.iv); }
 
     setGuest(name, cid) {
-      this.names[1] = name || '참가자';
+      this.names[1] = name || '';
       if (cid) this.guestCid = cid;
       if (this.state) this.state.names = this.names.slice();
       this.setPause('disconnect', false);
@@ -261,7 +262,7 @@
             break;
         }
       } catch (e) {
-        if (e instanceof PO.RuleError) this.sendTo(seat, { t: 'err', msg: e.message });
+        if (e instanceof PO.RuleError) this.sendTo(seat, { t: 'err', code: e.code, p: e.params && e.params.p });
         else console.error(e);
       }
     }
@@ -486,8 +487,11 @@
 
   const myName = () => ($('#name').value.trim() || '').slice(0, 12);
   const kindOf = (v, seat) => (seat === v.black ? 'b' : 'w');
-  const colorName = (v, seat) => (seat === v.black ? '흑' : '백');
-  const nameOf = (v, seat) => v.names[seat] || (seat === 0 ? '방장' : '참가자');
+  const colorName = (v, seat) => tr(seat === v.black ? 'color.b' : 'color.w');
+  // 이름을 비워 둔 사람은 각자 화면의 언어로 '방장/참가자/봇' 등으로 보인다.
+  const roleName = (mode, seat) => tr(mode === 'solo' ? (seat === 1 ? 'role.bot' : 'role.you') : (seat === 0 ? 'role.host' : 'role.guest'));
+  const nameOf = (v, seat) => v.names[seat] || roleName(app.mode, seat);
+  const recName = (rec, seat) => rec.names[seat] || roleName(rec.mode, seat);
 
   // ───────── 메시지 받기 ─────────
   function onMessage(m) {
@@ -502,7 +506,7 @@
         onView(m);
         break;
       case 'err':
-        toast(m.msg, 'err');
+        toast(tr('err.' + m.code, { p: m.p }), 'err');
         break;
       case 'emote':
         showBubble(m.from, m.e);
@@ -534,7 +538,7 @@
       }
     }
     app.needed = need;
-    document.title = (need ? '● ' : '') + '포인트오목';
+    document.title = (need ? '● ' : '') + tr('doc.title');
     render();
   }
 
@@ -763,26 +767,26 @@
       const me = seat === v.me;
       const tags = [];
       if (v.phase !== 'over') {
-        tags.push(seat === v.selector ? '<span class="tag sel">선택</span>' : '<span class="tag tie" title="동점이면 이 사람의 돌이 놓입니다">동점 유리</span>');
+        tags.push(seat === v.selector ? `<span class="tag sel">${tr('tag.sel')}</span>` : `<span class="tag tie" title="${tr('tag.tieTitle')}">${tr('tag.tie')}</span>`);
       } else if (v.result && v.result.winner === seat) {
-        tags.push('<span class="tag tie">승리</span>');
+        tags.push(`<span class="tag tie">${tr('tag.win')}</span>`);
       }
       let status = '', cls = '';
-      if (!me && !m.oppConnected) { status = '연결 끊김'; cls = 'bad'; }
-      else if (v.phase === 'select') status = seat === v.selector ? '자리 고르는 중' : '기다리는 중';
+      if (!me && !m.oppConnected) { status = tr('st.offline'); cls = 'bad'; }
+      else if (v.phase === 'select') status = tr(seat === v.selector ? 'st.picking' : 'st.waiting');
       else if (v.phase === 'bet') {
         const locked = me ? !!v.myBet : v.oppLocked;
-        status = locked ? '✓ 베팅 확정' : '베팅 중';
+        status = tr(locked ? 'st.locked' : 'st.betting');
         if (locked) cls = 'ok';
-      } else if (v.phase === 'reveal') status = '공개 중';
+      } else if (v.phase === 'reveal') status = tr('st.revealing');
       else if (v.phase === 'over') {
-        if (m.rematch[seat]) { status = '✓ 다시 하기'; cls = 'ok'; }
+        if (m.rematch[seat]) { status = tr('st.rematch'); cls = 'ok'; }
       }
       const pts = me
         ? `<div class="ppoints">${v.balance}<small>P</small></div>`
-        : `<div class="ppoints hidden" title="상대 포인트는 비공개">?<small>P</small></div>`;
+        : `<div class="ppoints hidden" title="${tr('pts.hidden')}">?<small>P</small></div>`;
       return `<div class="pcard ${me ? 'me' : ''}" data-seat="${seat}">
-        <div class="pcard-top"><span class="pstone ${kindOf(v, seat)}"></span><span class="pname">${esc(nameOf(v, seat))}</span>${me ? '<span class="pyou">나</span>' : ''}</div>
+        <div class="pcard-top"><span class="pstone ${kindOf(v, seat)}"></span><span class="pname">${esc(nameOf(v, seat))}</span>${me ? `<span class="pyou">${tr('role.you')}</span>` : ''}</div>
         ${pts}
         <div class="tags">${tags.join('')}</div>
         <div class="pstatus ${cls}">${status}</div>
@@ -796,12 +800,11 @@
     if (!v || app.screen !== 'game') return;
     const el = document.createElement('div');
     el.className = 'bubble ' + (seat === v.me ? 'left' : 'right');
-    el.textContent = e;
+    el.textContent = e === 'ㅋㅋ' ? tr('emote.lol') : e;
     $('#bubbles').appendChild(el);
     setTimeout(() => el.remove(), 2700);
   }
 
-  const PHASE_NAME = { select: '자리 선택', bet: '베팅', reveal: '공개', over: '종료' };
   function phaseTotal(v) {
     if (v.phase === 'select') return v.settings.selectSec * 1000;
     if (v.phase === 'bet') return v.settings.betSec * 1000;
@@ -811,8 +814,8 @@
   function renderPhaseLabel() {
     const v = app.view;
     $('#phase-label').innerHTML = v.phase === 'over'
-      ? `게임 종료 <small>· ${v.round}라운드</small>`
-      : `라운드 ${v.round} <small>· ${PHASE_NAME[v.phase]}</small>`;
+      ? `${tr('phase.gameOver')} <small>· ${tr('phase.roundN', { n: v.round })}</small>`
+      : `${tr('phase.round', { n: v.round })} <small>· ${tr('phase.' + v.phase)}</small>`;
   }
   function updateTimer() {
     const v = app.view, m = app.msg;
@@ -827,7 +830,7 @@
       return;
     }
     if (m.paused) {
-      el.textContent = '일시정지';
+      el.textContent = tr('timer.paused');
       el.className = 'timer paused';
       bar.style.width = Math.min(100, (m.msLeft / total) * 100) + '%';
       return;
@@ -863,55 +866,55 @@
     if (v.phase === 'select') {
       if (v.selector === v.me) {
         const t = app.sel.triple;
-        return `<h3>자리 고르기</h3>
-          <p>한 줄(가로·세로·대각선)로 이어진 빈 자리 3개를 고르세요. 첫 자리를 누르고, <b>두 칸 떨어진 끝자리</b>나 <b>바로 옆 칸</b>을 누르면 됩니다.</p>
-          ${t ? tripleChips(v, t) : '<div class="sel-chips"><span class="sel-chip empty">아직 고르지 않았습니다</span></div>'}
+        return `<h3>${tr('sel.title')}</h3>
+          <p>${tr('sel.help')}</p>
+          ${t ? tripleChips(v, t) : `<div class="sel-chips"><span class="sel-chip empty">${tr('sel.none')}</span></div>`}
           <div class="row">
-            <button class="btn primary" data-act="confirm-sel" ${t ? '' : 'disabled'}>이 3점으로 확정</button>
-            <button class="btn ghost" data-act="clear-sel" ${t || app.sel.anchor != null ? '' : 'disabled'}>다시 고르기</button>
+            <button class="btn primary" data-act="confirm-sel" ${t ? '' : 'disabled'}>${tr('sel.confirm')}</button>
+            <button class="btn ghost" data-act="clear-sel" ${t || app.sel.anchor != null ? '' : 'disabled'}>${tr('sel.clear')}</button>
           </div>
-          <p class="hint">동점이면 <b>${esc(nameOf(v, opp))}</b>의 돌이 놓입니다. 시간이 다 되면 지금 고른 3점(없으면 무작위 3점)으로 확정됩니다.</p>`;
+          <p class="hint">${tr('sel.hint', { name: esc(nameOf(v, opp)) })}</p>`;
       }
-      return `<h3>${esc(nameOf(v, v.selector))} 님이 자리를 고르는 중</h3>
-        <p>세 자리가 정해지면 바로 베팅이 시작됩니다. 이번 라운드 내 포인트는 <b>${v.balance}P</b>.</p>
-        <p class="hint">이번 라운드는 동점이면 <b>내 돌</b>이 놓입니다.</p>`;
+      return `<h3>${tr('selWait.title', { name: esc(nameOf(v, v.selector)) })}</h3>
+        <p>${tr('selWait.body', { p: v.balance })}</p>
+        <p class="hint">${tr('selWait.hint')}</p>`;
     }
     if (v.phase === 'bet') {
-      const tieTo = v.selector === v.me ? `${esc(nameOf(v, opp))}의 돌` : '내 돌';
+      const tieTo = v.selector === v.me ? tr('bet.tieOpp', { name: esc(nameOf(v, opp)) }) : tr('bet.tieMe');
       if (v.myBet) {
         const spent = PO.sum(v.myBet), rem = v.balance - spent;
-        return `<h3>베팅 완료</h3>
+        return `<h3>${tr('bet.lockedTitle')}</h3>
           ${tripleChips(v, v.triple)}
           <div class="locked">${v.myBet.map((b, k) => `<span class="num">${k + 1}</span><span class="v">${b}</span>`).join('')}</div>
-          <p>남은 <b>${rem}P</b> → 다음 라운드 이월 <b>${Math.floor(rem / 2)}P</b>${v.myBetAuto ? ' <span class="auto-mark">(시간 초과 자동 제출)</span>' : ''}</p>
-          <p class="hint">${v.oppLocked ? '상대도 확정했습니다. 곧 공개됩니다.' : '상대가 베팅하는 중입니다…'}</p>`;
+          <p>${tr('bet.left', { r: rem, c: Math.floor(rem / 2) })}${v.myBetAuto ? ` <span class="auto-mark">${tr('bet.auto')}</span>` : ''}</p>
+          <p class="hint">${tr(v.oppLocked ? 'bet.oppDone' : 'bet.oppWait')}</p>`;
       }
-      return `<h3>베팅</h3>
-        <p>보유 <b>${v.balance}P</b>를 세 자리에 나눠 거세요. 자리마다 1P 이상. 동점이면 <b>${tieTo}</b>이 놓입니다.</p>
+      return `<h3>${tr('bet.title')}</h3>
+        <p>${tr('bet.body', { p: v.balance, tie: tieTo })}</p>
         <div class="bet-rows">${[0, 1, 2].map((k) => `
           <div class="bet-row" data-k="${k}">
             <span class="num">${k + 1}</span><span class="bet-coord">${PO.coordName(v.size, v.triple[k])}</span>
             <div class="stepper">
-              <button data-act="bet-dec" data-k="${k}" aria-label="${k + 1}번 자리 1 줄이기">−</button>
-              <input type="number" inputmode="numeric" min="1" step="1" data-k="${k}" aria-label="${k + 1}번 자리 베팅">
-              <button data-act="bet-inc" data-k="${k}" aria-label="${k + 1}번 자리 1 늘리기">+</button>
+              <button data-act="bet-dec" data-k="${k}" aria-label="${tr('bet.dec', { k: k + 1 })}">−</button>
+              <input type="number" inputmode="numeric" min="1" step="1" data-k="${k}" aria-label="${tr('bet.input', { k: k + 1 })}">
+              <button data-act="bet-inc" data-k="${k}" aria-label="${tr('bet.inc', { k: k + 1 })}">+</button>
             </div>
           </div>`).join('')}
         </div>
         <div class="quick">
-          <button data-act="bet-reset" title="세 자리 모두 1포인트">1·1·1</button>
-          <button data-act="bet-even" title="가진 포인트를 전부 고르게">고르게</button>
-          <button data-act="bet-all" data-k="0" title="나머지는 1씩, 남은 포인트 전부 ①에">①올인</button>
-          <button data-act="bet-all" data-k="1" title="나머지는 1씩, 남은 포인트 전부 ②에">②올인</button>
-          <button data-act="bet-all" data-k="2" title="나머지는 1씩, 남은 포인트 전부 ③에">③올인</button>
+          <button data-act="bet-reset" title="${tr('q.resetTitle')}">1·1·1</button>
+          <button data-act="bet-even" title="${tr('q.evenTitle')}">${tr('q.even')}</button>
+          <button data-act="bet-all" data-k="0" title="${tr('q.allTitle', { c: '①' })}">${tr('q.all', { c: '①' })}</button>
+          <button data-act="bet-all" data-k="1" title="${tr('q.allTitle', { c: '②' })}">${tr('q.all', { c: '②' })}</button>
+          <button data-act="bet-all" data-k="2" title="${tr('q.allTitle', { c: '③' })}">${tr('q.all', { c: '③' })}</button>
         </div>
         <div class="bet-sum">
-          <div><b id="bs-spent">3</b><span>베팅</span></div>
-          <div id="bs-rem-box"><b id="bs-rem">0</b><span>남음</span></div>
-          <div class="carry"><b id="bs-carry">0</b><span>다음 라운드 이월</span></div>
+          <div><b id="bs-spent">3</b><span>${tr('sum.spent')}</span></div>
+          <div id="bs-rem-box"><b id="bs-rem">0</b><span>${tr('sum.left')}</span></div>
+          <div class="carry"><b id="bs-carry">0</b><span>${tr('sum.carry')}</span></div>
         </div>
-        <button class="btn primary wide" data-act="confirm-bet" id="confirm-bet">베팅 확정</button>
-        <p class="hint">남긴 포인트는 절반(내림)만 넘어갑니다. 시간이 다 되면 지금 입력한 값으로 제출됩니다.</p>`;
+        <button class="btn primary wide" data-act="confirm-bet" id="confirm-bet">${tr('bet.confirm')}</button>
+        <p class="hint">${tr('bet.hint')}</p>`;
     }
     if (v.phase === 'reveal' || v.phase === 'over') {
       const h = v.history[v.history.length - 1];
@@ -923,28 +926,28 @@
           if (k >= step) return `<li class="wait"><span class="num">${k + 1}</span>${PO.coordName(v.size, c)}<span class="who">…</span></li>`;
           const w = h.winners[k];
           return `<li><span class="num">${k + 1}</span>${PO.coordName(v.size, c)}
-            <span class="mine">내 베팅 ${h.bets[v.me][k]}</span>
+            <span class="mine">${tr('rev.mine', { b: h.bets[v.me][k] })}</span>
             <span class="who"><span class="pstone ${kindOf(v, w)}"></span>${esc(nameOf(v, w))}</span></li>`;
         }).join('')}</ul>`;
       }
       if (v.phase === 'reveal') {
         const carry = h.carry[v.me];
-        return `<h3>결과 공개</h3>${list}
-          <p>남은 ${h.remaining[v.me]}P → 이월 <b>${carry}P</b>. 다음 라운드 내 포인트 <b>${carry + v.settings.grant}P</b>.</p>
-          <p class="hint">다음 라운드 선택: <b>${esc(nameOf(v, 1 - v.selector))}</b></p>`;
+        return `<h3>${tr('rev.title')}</h3>${list}
+          <p>${tr('rev.carry', { r: h.remaining[v.me], c: carry, n: carry + v.settings.grant })}</p>
+          <p class="hint">${tr('rev.next', { name: esc(nameOf(v, 1 - v.selector)) })}</p>`;
       }
       // over
       const r = v.result, m = app.msg;
-      const head = r.winner == null ? '무승부' : r.winner === v.me ? '승리!' : '패배';
-      const sub = r.winner == null ? reasonText(v) : `${colorName(v, r.winner)} ${esc(nameOf(v, r.winner))} 승 · ${reasonText(v)}`;
+      const head = tr(r.winner == null ? 'res.draw' : r.winner === v.me ? 'res.win' : 'res.lose');
+      const sub = r.winner == null ? reasonText(v) : `${tr('res.by', { color: colorName(v, r.winner), name: esc(nameOf(v, r.winner)) })} · ${reasonText(v)}`;
       const iWant = m.rematch[v.me], theyWant = m.rematch[opp];
       return `${list}
         <div class="win-text">${head}</div>
         <p>${sub}</p>
-        <button class="btn wide" data-act="snapshot">스냅샷 보기 · 모든 베팅 공개</button>
-        <button class="btn primary wide" data-act="rematch" ${iWant ? 'disabled' : ''}>${iWant ? '상대를 기다리는 중…' : '다시 하기 (흑백 바꿔서)'}</button>
-        ${theyWant && !iWant ? `<p class="hint">${esc(nameOf(v, opp))} 님이 다시 하기를 원합니다.</p>` : ''}
-        <button class="btn ghost wide" data-act="leave">로비로</button>`;
+        <button class="btn wide" data-act="snapshot">${tr('btn.snapshotFull')}</button>
+        <button class="btn primary wide" data-act="rematch" ${iWant ? 'disabled' : ''}>${tr(iWant ? 'btn.rematchWait' : 'btn.rematch')}</button>
+        ${theyWant && !iWant ? `<p class="hint">${tr('rematch.they', { name: esc(nameOf(v, opp)) })}</p>` : ''}
+        <button class="btn ghost wide" data-act="leave">${tr('btn.lobby')}</button>`;
     }
     return '';
   }
@@ -952,11 +955,11 @@
   function reasonText(v) {
     const r = v.result;
     switch (r.reason) {
-      case 'omok': return `${r.round}라운드에 오목 완성`;
-      case 'more': return `둘 다 오목 — ${Math.max(...r.counts)}개 대 ${Math.min(...r.counts)}개`;
-      case 'majority': return `둘 다 오목 ${r.counts[0]}개 — 그 라운드 3점 중 2점 이상을 가져감`;
-      case 'resign': return `${esc(nameOf(v, 1 - r.winner))} 기권`;
-      case 'full': return '더 고를 3점이 없어 무승부';
+      case 'omok': return tr('why.omok', { n: r.round });
+      case 'more': return tr('why.more', { a: Math.max(...r.counts), b: Math.min(...r.counts) });
+      case 'majority': return tr('why.majority', { n: r.counts[0] });
+      case 'resign': return tr('why.resign', { name: esc(nameOf(v, 1 - r.winner)) });
+      case 'full': return tr('why.full');
       default: return '';
     }
   }
@@ -1010,28 +1013,28 @@
       const mine = h.bets[v.me];
       return `<li><span class="r">R${h.round}</span>
         <span class="mini-stones">${h.winners.map((w) => `<i class="${kindOf(v, w)}"></i>`).join('')}</span>
-        <span>선택 ${esc(nameOf(v, h.selector))}${h.selectAuto ? ' <span class="auto-mark">자동</span>' : ''}</span>
-        <small>내 베팅 ${mine ? mine.join('·') : '-'} · 이월 ${h.carry[v.me]}</small></li>`;
-    }).join('') || '<li><small>아직 기록이 없습니다.</small></li>';
+        <span>${tr('log.picker', { name: esc(nameOf(v, h.selector)) })}${h.selectAuto ? ` <span class="auto-mark">${tr('auto')}</span>` : ''}</span>
+        <small>${tr('log.mine', { b: mine ? mine.join('·') : '-', c: h.carry[v.me] })}</small></li>`;
+    }).join('') || `<li><small>${tr('log.empty')}</small></li>`;
   }
 
   function renderOverlay() {
     const v = app.view, m = app.msg, el = $('#overlay');
     let html = '';
     if (app.mode === 'guest' && app.netStatus !== 'connected') {
-      html = `<div class="overlay-card"><h2>연결이 끊겼습니다</h2><p>방장과 다시 연결하는 중<span class="dots"></span><br>타이머는 멈춰 있습니다.</p>
-        <button class="btn ghost" data-act="leave">나가기</button></div>`;
+      html = `<div class="overlay-card"><h2>${tr('ov.lostTitle')}</h2><p>${tr('ov.lostBody')}</p>
+        <button class="btn ghost" data-act="leave">${tr('btn.leave')}</button></div>`;
     } else if (v.phase !== 'over' && !m.oppConnected) {
-      html = `<div class="overlay-card"><h2>상대 연결 끊김</h2><p>${esc(nameOf(v, 1 - v.me))} 님이 돌아오기를 기다리는 중<span class="dots"></span><br>타이머는 멈춰 있습니다. 같은 방 코드(<b>${esc(m.code)}</b>)로 다시 들어오면 이어집니다.</p></div>`;
+      html = `<div class="overlay-card"><h2>${tr('ov.oppTitle')}</h2><p>${tr('ov.oppBody', { name: esc(nameOf(v, 1 - v.me)), code: esc(m.code) })}</p></div>`;
     } else if (v.phase === 'over' && animStep() >= 4 && !app.dismissed[v.id]) {
       const r = v.result;
-      const head = r.winner == null ? '무승부' : r.winner === v.me ? '승리!' : '패배';
-      const sub = r.winner == null ? reasonText(v) : `${colorName(v, r.winner)} ${esc(nameOf(v, r.winner))} 승 · ${reasonText(v)}`;
+      const head = tr(r.winner == null ? 'res.draw' : r.winner === v.me ? 'res.win' : 'res.lose');
+      const sub = r.winner == null ? reasonText(v) : `${tr('res.by', { color: colorName(v, r.winner), name: esc(nameOf(v, r.winner)) })} · ${reasonText(v)}`;
       html = `<div class="overlay-card win"><h2>${head}</h2><p>${sub}</p>
-        <div class="row center"><button class="btn primary" data-act="snapshot">스냅샷 보기</button><button class="btn ghost" data-act="dismiss-overlay">판 보기</button></div></div>`;
+        <div class="row center"><button class="btn primary" data-act="snapshot">${tr('btn.snapshot')}</button><button class="btn ghost" data-act="dismiss-overlay">${tr('btn.viewBoard')}</button></div></div>`;
     } else if (m.paused && m.pauses && m.pauses.manual != null) {
       const by = m.pauses.manual;
-      html = `<div class="overlay-card"><h2>일시정지</h2><p>${esc(nameOf(v, by))} 님이 멈췄습니다.</p><button class="btn primary" data-act="pause">다시 시작</button></div>`;
+      html = `<div class="overlay-card"><h2>${tr('ov.pausedTitle')}</h2><p>${tr('ov.pausedBody', { name: esc(nameOf(v, by)) })}</p><button class="btn primary" data-act="pause">${tr('bar.resume')}</button></div>`;
     }
     if (html === app.overlaySig) return;
     app.overlaySig = html;
@@ -1041,22 +1044,23 @@
 
   function renderBar() {
     const v = app.view, m = app.msg;
-    $('#code-chip').textContent = app.mode === 'solo' ? '연습' : (m.code || '');
+    $('#code-chip').textContent = app.mode === 'solo' ? tr('bar.practice') : (m.code || '');
     const net = $('#net');
     if (app.mode === 'solo') { net.textContent = ''; net.className = 'net'; }
     else if (app.mode === 'guest') {
       const ok = app.netStatus === 'connected';
-      net.textContent = ok ? '연결됨' : '재연결 중';
+      net.textContent = tr(ok ? 'net.ok' : 'net.re');
       net.className = 'net ' + (ok ? 'ok' : 'bad');
     } else {
-      net.textContent = m.oppConnected ? '상대 연결됨' : '상대 없음';
+      net.textContent = tr(m.oppConnected ? 'net.opp' : 'net.none');
       net.className = 'net ' + (m.oppConnected ? 'ok' : 'bad');
     }
     const manual = !!(m.pauses && m.pauses.manual != null);
     const pb = $('#pause-btn');
     pb.classList.toggle('on', manual);
     pb.disabled = v.phase === 'over';
-    pb.title = manual ? '다시 시작' : '일시정지';
+    pb.title = tr(manual ? 'bar.resume' : 'bar.pause');
+    pb.setAttribute('aria-label', pb.title);
     $('#mute-btn').classList.toggle('on', !Sound.muted);
     $('#mute-btn').textContent = Sound.muted ? '♪̸' : '♪';
     $('#resign-btn').hidden = v.phase === 'over';
@@ -1077,8 +1081,8 @@
 
   // ───────── 대기실 ─────────
   function settingsSummary(s, colorPref) {
-    const color = colorPref ? ` · 방장 돌 ${{ random: '랜덤', black: '흑', white: '백' }[colorPref]}` : '';
-    return `${s.size}×${s.size} · 선택 ${s.selectSec}초 · 베팅 ${s.betSec}초${color} · 장목 불인정`;
+    const color = colorPref ? tr('room.summaryColor', { c: tr({ random: 'pref.random', black: 'color.b', white: 'color.w' }[colorPref]) }) : '';
+    return tr('room.summary', { s: s.size, a: s.selectSec, b: s.betSec, color });
   }
   function shareUrl(code) { return location.origin + location.pathname + '?join=' + code; }
   function renderRoom() {
@@ -1090,18 +1094,13 @@
     if (isHost && code) $('#share-link').value = shareUrl(code);
     let status;
     if (isHost) {
-      if (app.netStatus === 'opening') status = '방을 여는 중<span class="dots"></span>';
-      else if (app.netStatus === 'waitid') status = '이전 연결이 정리되기를 기다리는 중<span class="dots"></span>';
-      else if (m && m.guestHere) status = `<b>${esc(m.names[1])}</b> 님이 들어왔습니다. 게임을 시작하세요.`;
-      else status = '상대를 기다리는 중<span class="dots"></span> 코드나 링크를 보내 주세요.';
+      if (app.netStatus === 'opening') status = tr('room.opening');
+      else if (app.netStatus === 'waitid') status = tr('room.waitid');
+      else if (m && m.guestHere) status = tr('room.guestHere', { name: esc(m.names[1] || tr('role.guest')) });
+      else status = tr('room.waiting');
     } else {
-      status = {
-        connecting: '방에 연결하는 중<span class="dots"></span>',
-        connected: '방장이 게임을 시작하기를 기다리는 중<span class="dots"></span>',
-        reconnecting: '연결이 끊겨 다시 연결하는 중<span class="dots"></span>',
-        notfound: '방을 찾지 못했습니다. 코드를 확인하거나 방장이 방을 열었는지 확인하세요.',
-        full: '이미 다른 사람이 들어와 있는 방입니다.',
-      }[app.netStatus] || '연결 중<span class="dots"></span>';
+      status = ['connecting', 'connected', 'reconnecting', 'notfound', 'full'].includes(app.netStatus)
+        ? tr('room.' + app.netStatus) : tr('room.default');
     }
     $('#room-status').innerHTML = status;
     const names = m ? m.names : [isHost ? myName() : '', ''];
@@ -1109,8 +1108,9 @@
     const here = isHost ? !!(m && m.guestHere) : !!m;
     $('#room-players').innerHTML = [0, 1].map((seat) => {
       const present = seat === 0 ? (isHost || !!m) : here;
-      if (!present) return `<li class="empty">${seat === 0 ? '방장' : '빈 자리'}</li>`;
-      return `<li><span>${esc(names[seat] || (seat === 0 ? '방장' : '참가자'))}${seat === me ? ' <small>(나)</small>' : ''}</span><small>${seat === 0 ? '방장' : '참가자'}</small></li>`;
+      const role = tr(seat === 0 ? 'role.host' : 'role.guest');
+      if (!present) return `<li class="empty">${seat === 0 ? role : tr('room.empty')}</li>`;
+      return `<li><span>${esc(names[seat] || role)}${seat === me ? ` <small>${tr('room.me')}</small>` : ''}</span><small>${role}</small></li>`;
     }).join('');
     $('#room-settings').textContent = m && m.settings ? settingsSummary(m.settings, m.colorPref) : '';
     const sb = $('#start-btn');
@@ -1138,13 +1138,13 @@
       onGuest: (name, cid) => {
         const h = app.host; if (!h) return;
         h.setGuest(name, cid);
-        toast(`${name || '참가자'} 님이 들어왔습니다.`);
+        toast(tr('toast.joined', { name: name || tr('role.guest') }));
       },
       onMessage: (m) => { if (app.host) app.host.handle(1, m); },
       onDrop: () => {
         if (!app.host) return;
         app.host.guestLeft();
-        toast('상대 연결이 끊겼습니다.', 'err');
+        toast(tr('toast.oppLost'), 'err');
       },
       canAccept: (cid) => !!app.host && app.host.canAccept(cid),
       onError: (err) => {
@@ -1161,9 +1161,9 @@
             renderRoom();
           }
         } else if (err.type === 'browser-incompatible') {
-          toast('이 브라우저는 실시간 연결(WebRTC)을 지원하지 않습니다.', 'err');
+          toast(tr('toast.noRTC'), 'err');
         } else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) {
-          toast('연결 서버와 통신이 불안정합니다. 다시 시도하는 중…', 'err');
+          toast(tr('toast.signal'), 'err');
           setTimeout(() => { if (app.net && app.net.peer && app.net.peer.destroyed) app.net.start(); }, 4000);
         } else {
           console.warn('peer error', err.type, err);
@@ -1173,14 +1173,14 @@
   }
 
   function startHosting(settings, colorPref) {
-    if (!window.Peer) { toast('연결 라이브러리(PeerJS)를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'err'); return; }
+    if (!window.Peer) { toast(tr('toast.noPeer'), 'err'); return; }
     teardown();
     app.mode = 'host';
     const code = makeCode();
     const net = new HostNet(code, hostCallbacks());
     app.net = net;
     app.host = new GameHost({
-      code, settings, colorPref, myName: myName() || '방장',
+      code, settings, colorPref, myName: myName(),
       remote: { send: (m) => net.send(m), get connected() { return net.connected; } },
       onLocal: onMessage, persist: true,
     });
@@ -1194,7 +1194,7 @@
   function resumeHosting() {
     const data = load(K.host, null);
     if (!data || !data.state) return;
-    if (!window.Peer) { toast('연결 라이브러리(PeerJS)를 불러오지 못했습니다.', 'err'); return; }
+    if (!window.Peer) { toast(tr('toast.noPeer'), 'err'); return; }
     teardown();
     app.mode = 'host';
     const net = new HostNet(data.code, hostCallbacks());
@@ -1212,14 +1212,14 @@
     teardown();
     app.mode = 'solo';
     const bot = new BotSeat();
-    app.host = new GameHost({ code: '', settings, colorPref, myName: myName() || '나', remote: bot, onLocal: onMessage, persist: false });
+    app.host = new GameHost({ code: '', settings, colorPref, myName: myName(), remote: bot, onLocal: onMessage, persist: false });
     bot.host = app.host;
-    app.host.names[1] = '봇';
+    app.host.names[1] = '';
     app.host.startGame();
   }
 
   function startJoining(code) {
-    if (!window.Peer) { toast('연결 라이브러리(PeerJS)를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'err'); return; }
+    if (!window.Peer) { toast(tr('toast.noPeer'), 'err'); return; }
     teardown();
     app.mode = 'guest';
     const map = load(K.client, {});
@@ -1229,12 +1229,12 @@
     history.replaceState(null, '', location.pathname + '?join=' + code);
     app.netStatus = 'connecting';
     app.msg = null;
-    const net = new GuestNet(code, cid, myName() || '참가자', {
+    const net = new GuestNet(code, cid, myName(), {
       onMessage,
       onStatus: (s) => {
         const was = app.netStatus;
         app.netStatus = s;
-        if (s === 'connected' && was === 'reconnecting') toast('다시 연결되었습니다.');
+        if (s === 'connected' && was === 'reconnecting') toast(tr('toast.reconnected'));
         if (app.screen === 'room') renderRoom();
         else if (app.screen === 'game') { app.overlaySig = null; render(); }
       },
@@ -1252,13 +1252,13 @@
     app.panelSig = app.playersSig = app.logSig = ''; app.overlaySig = null;
     app.anim.token++;
     app.needed = false;
-    document.title = '포인트오목';
+    document.title = tr('doc.title');
   }
 
   function leave() {
     const v = app.view;
     const inGame = v && v.phase !== 'over' && app.mode !== 'solo';
-    if (inGame && !confirm(app.mode === 'host' ? '나가면 이 방이 닫힙니다. 나갈까요?\n(나중에 로비에서 "이어하기"로 다시 열 수 있습니다)' : '게임에서 나갈까요? 같은 코드로 다시 들어오면 이어집니다.')) return;
+    if (inGame && !confirm(tr(app.mode === 'host' ? 'confirm.leaveHost' : 'confirm.leaveGuest'))) return;
     if (app.mode === 'host' && (!v || v.phase === 'over')) localStorage.removeItem(K.host);
     teardown();
     app.mode = 'lobby';
@@ -1274,7 +1274,27 @@
     $('#resume-card').hidden = !ok;
     if (ok) {
       $('#resume-code').textContent = data.code;
-      $('#resume-meta').textContent = `${data.names[0]} vs ${data.names[1] || '?'} · ${data.state.round}라운드 · ${fmtDate(data.savedAt)} 저장`;
+      $('#resume-meta').textContent = tr('resume.meta', { a: data.names[0] || tr('role.host'), b: data.names[1] || '?', n: data.state.round, t: fmtDate(data.savedAt) });
+    }
+  }
+
+  function setSettingsLabels() {
+    const solo = app.formMode === 'solo';
+    $('#settings-title').textContent = tr(solo ? 'set.titleSolo' : 'set.titleRoom');
+    $('#settings-submit').textContent = tr(solo ? 'set.submitSolo' : 'set.submitRoom');
+  }
+
+  function setLang(l) {
+    window.I18N.set(l);
+    closeModal();
+    setSettingsLabels();
+    refreshResume();
+    app.panelSig = app.playersSig = app.logSig = '';
+    app.overlaySig = null;
+    if (app.screen === 'room') renderRoom();
+    if (app.screen === 'game' && app.view) {
+      render();
+      document.title = (app.needed ? '● ' : '') + tr('doc.title');
     }
   }
 
@@ -1283,8 +1303,7 @@
     app.formMode = mode;
     $('#join-form').hidden = true;
     $('#settings-form').hidden = false;
-    $('#settings-title').textContent = mode === 'solo' ? '연습 설정' : '방 설정';
-    $('#settings-submit').textContent = mode === 'solo' ? '연습 시작' : '방 열기';
+    setSettingsLabels();
     $('#settings-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -1300,13 +1319,13 @@
     const recs = load(K.records, []);
     const items = recs.map((r) => {
       const res = r.result;
-      const who = res.winner == null ? '무승부' : `${r.names[res.winner]} 승`;
-      const mine = res.winner == null ? '' : res.winner === r.me ? ' · 내 승리' : ' · 내 패배';
-      return `<li><button data-act="open-record" data-id="${esc(r.id)}"><span><b>${esc(r.names[r.black])}</b>(흑) vs <b>${esc(r.names[1 - r.black])}</b>(백)${r.mode === 'solo' ? ' <small>연습</small>' : ''}</span>
-        <small>${fmtDate(r.at)} · ${r.history.length}라운드 · ${esc(who)}${mine}</small></button></li>`;
+      const who = res.winner == null ? tr('res.draw') : tr('rec.won', { name: recName(r, res.winner) });
+      const mine = res.winner == null ? '' : tr(res.winner === r.me ? 'rec.myWin' : 'rec.myLoss');
+      return `<li><button data-act="open-record" data-id="${esc(r.id)}"><span>${tr('rec.vs', { b: esc(recName(r, r.black)), w: esc(recName(r, 1 - r.black)) })}${r.mode === 'solo' ? ` <small>${tr('rec.practice')}</small>` : ''}</span>
+        <small>${fmtDate(r.at)} · ${tr('rec.rounds', { n: r.history.length })} · ${esc(who)}${mine}</small></button></li>`;
     }).join('');
-    openModal(`<h2>지난 게임 스냅샷</h2><p class="hint" style="color:var(--muted);margin:6px 0 0">이 기기에 저장된 게임입니다. 끝난 게임은 두 사람의 모든 베팅이 공개됩니다.</p>
-      ${items ? `<ul class="rec-list">${items}</ul>` : '<p style="color:var(--muted)">아직 끝난 게임이 없습니다.</p>'}`);
+    openModal(`<h2>${tr('rec.title')}</h2><p class="hint" style="color:var(--muted);margin:6px 0 0">${tr('rec.note')}</p>
+      ${items ? `<ul class="rec-list">${items}</ul>` : `<p style="color:var(--muted)">${tr('rec.empty')}</p>`}`);
   }
 
   let replay = null;
@@ -1314,33 +1333,34 @@
     const N = rec.history.length;
     const b = rec.black, wseat = 1 - rec.black;
     const r = rec.result;
-    const resText = r.winner == null ? '무승부' : `${r.winner === b ? '흑' : '백'} ${esc(rec.names[r.winner])} 승리`;
-    const reasonMap = { omok: '오목 완성', more: `오목 ${Math.max(...r.counts)}개 대 ${Math.min(...r.counts)}개`, majority: '오목 수 동점 → 그 라운드 3점 중 2점 이상', resign: '기권', full: '둘 곳 없음' };
+    const cname = (seat) => tr(seat === b ? 'color.b' : 'color.w');
+    const resText = r.winner == null ? tr('res.draw') : tr('rp.won', { color: cname(r.winner), name: esc(recName(rec, r.winner)) });
+    const whyText = r.reason ? tr('rp.why', { why: tr('rp.' + r.reason, { a: Math.max(...r.counts), b: Math.min(...r.counts) }), n: r.round }) : '';
     const ledger = rec.history.map((h) => {
       const cell = (k) => {
         const bb = h.bets[b][k], ww = h.bets[wseat][k], tie = bb === ww;
-        return `<td><span class="${h.winners[k] === b ? 'win' : 'lose'}">${bb}</span> : <span class="${h.winners[k] === wseat ? 'win' : 'lose'}">${ww}</span>${tie ? ' <span class="tie-mark">동점</span>' : ''}</td>`;
+        return `<td><span class="${h.winners[k] === b ? 'win' : 'lose'}">${bb}</span> : <span class="${h.winners[k] === wseat ? 'win' : 'lose'}">${ww}</span>${tie ? ` <span class="tie-mark">${tr('rp.tie')}</span>` : ''}</td>`;
       };
-      const money = (s) => `${h.balance[s]} → ${h.remaining[s]} <small>(+${h.carry[s]})</small>${h.betAuto[s] ? ' <span class="auto-mark">자동</span>' : ''}`;
-      return `<tr><td><b>${h.round}</b></td><td>${h.selector === b ? '흑' : '백'}${h.selectAuto ? ' <span class="auto-mark">자동</span>' : ''}</td>${cell(0)}${cell(1)}${cell(2)}<td>${money(b)}</td><td>${money(wseat)}</td></tr>`;
+      const money = (s) => `${h.balance[s]} → ${h.remaining[s]} <small>(+${h.carry[s]})</small>${h.betAuto[s] ? ` <span class="auto-mark">${tr('auto')}</span>` : ''}`;
+      return `<tr><td><b>${h.round}</b></td><td>${cname(h.selector)}${h.selectAuto ? ` <span class="auto-mark">${tr('auto')}</span>` : ''}</td>${cell(0)}${cell(1)}${cell(2)}<td>${money(b)}</td><td>${money(wseat)}</td></tr>`;
     }).join('');
-    openModal(`<h2>스냅샷 · ${fmtDate(rec.at)}</h2>
-      <p style="color:var(--muted);margin:6px 0 0">흑 <b style="color:var(--fg)">${esc(rec.names[b])}</b> vs 백 <b style="color:var(--fg)">${esc(rec.names[wseat])}</b> — ${resText}${r.reason ? ` (${reasonMap[r.reason] || ''}, ${r.round}라운드)` : ''}</p>
+    openModal(`<h2>${tr('rp.title', { d: fmtDate(rec.at) })}</h2>
+      <p style="color:var(--muted);margin:6px 0 0">${tr('rp.head', { b: esc(recName(rec, b)), w: esc(recName(rec, wseat)), res: resText })}${whyText}</p>
       <div class="replay">
         <div class="replay-board"><svg id="rp-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${boardW(rec.size)} ${boardW(rec.size)}">${boardStatic(rec.size, 'r-')}<g id="rp-dyn"></g></svg></div>
         <div>
           <div class="replay-ctrl">
-            <button class="icon-btn" data-act="rp-prev" aria-label="이전 라운드">◀</button>
-            <input type="range" id="rp-range" min="1" max="${Math.max(1, N)}" value="${Math.max(1, N)}" aria-label="라운드">
-            <button class="icon-btn" data-act="rp-next" aria-label="다음 라운드">▶</button>
+            <button class="icon-btn" data-act="rp-prev" aria-label="${tr('rp.prev')}">◀</button>
+            <input type="range" id="rp-range" min="1" max="${Math.max(1, N)}" value="${Math.max(1, N)}" aria-label="${tr('rp.round')}">
+            <button class="icon-btn" data-act="rp-next" aria-label="${tr('rp.next')}">▶</button>
             <span class="lab" id="rp-lab"></span>
           </div>
           <div id="rp-detail"></div>
         </div>
       </div>
       <div class="ledger-wrap"><table class="ledger">
-        <thead><tr><th>R</th><th>선택</th><th>① 흑:백</th><th>② 흑:백</th><th>③ 흑:백</th><th>흑 보유→남음 (이월)</th><th>백 보유→남음 (이월)</th></tr></thead>
-        <tbody>${ledger || '<tr><td colspan="7">기록 없음</td></tr>'}</tbody></table></div>`);
+        <thead><tr><th>R</th><th>${tr('rp.colPicker')}</th><th>${tr('rp.colSpot', { c: '①' })}</th><th>${tr('rp.colSpot', { c: '②' })}</th><th>${tr('rp.colSpot', { c: '③' })}</th><th>${tr('rp.colMoney', { color: tr('color.b') })}</th><th>${tr('rp.colMoney', { color: tr('color.w') })}</th></tr></thead>
+        <tbody>${ledger || `<tr><td colspan="7">${tr('rp.none')}</td></tr>`}</tbody></table></div>`);
     replay = { rec, round: Math.max(1, N) };
     drawReplay();
   }
@@ -1374,33 +1394,35 @@
     $('#rp-dyn').innerHTML = s;
     $('#rp-range').value = round;
     $('#rp-lab').textContent = N ? `R${round} / ${N}` : '—';
-    if (!h) { $('#rp-detail').innerHTML = '<p style="color:var(--muted)">라운드 기록이 없습니다.</p>'; return; }
+    if (!h) { $('#rp-detail').innerHTML = `<p style="color:var(--muted)">${tr('rp.noRound')}</p>`; return; }
     const b = rec.black, w = 1 - rec.black;
     const rows = h.triple.map((c, k) => {
       const tie = h.bets[b][k] === h.bets[w][k];
       return `<tr><td><span class="num">${k + 1}</span> ${PO.coordName(size, c)}</td>
         <td class="${h.winners[k] === b ? 'win' : 'lose'}">${h.bets[b][k]}</td>
         <td class="${h.winners[k] === w ? 'win' : 'lose'}">${h.bets[w][k]}</td>
-        <td>${h.winners[k] === b ? '흑' : '백'}${tie ? ' <span class="tie-mark">동점→비선택자</span>' : ''}</td></tr>`;
+        <td>${tr(h.winners[k] === b ? 'color.b' : 'color.w')}${tie ? ` <span class="tie-mark">${tr('rp.tieNon')}</span>` : ''}</td></tr>`;
     }).join('');
     $('#rp-detail').innerHTML = `
-      <p style="margin:0 0 8px;color:var(--muted)">선택: <b style="color:var(--fg)">${h.selector === b ? '흑' : '백'} ${esc(rec.names[h.selector])}</b>${h.selectAuto ? ' <span class="auto-mark">시간 초과 자동</span>' : ''}</p>
-      <table class="detail"><thead><tr><th>자리</th><th>흑 ${esc(rec.names[b])}</th><th>백 ${esc(rec.names[w])}</th><th>착수</th></tr></thead><tbody>${rows}
-        <tr><td><small>보유</small></td><td>${h.balance[b]}</td><td>${h.balance[w]}</td><td></td></tr>
-        <tr><td><small>남음</small></td><td>${h.remaining[b]}</td><td>${h.remaining[w]}</td><td></td></tr>
-        <tr><td><small>이월</small></td><td>${h.carry[b]}</td><td>${h.carry[w]}</td><td></td></tr>
+      <p style="margin:0 0 8px;color:var(--muted)">${tr('rp.picker')} <b style="color:var(--fg)">${tr(h.selector === b ? 'color.b' : 'color.w')} ${esc(recName(rec, h.selector))}</b>${h.selectAuto ? ` <span class="auto-mark">${tr('rp.autoPick')}</span>` : ''}</p>
+      <table class="detail"><thead><tr><th>${tr('rp.spot')}</th><th>${tr('color.b')} ${esc(recName(rec, b))}</th><th>${tr('color.w')} ${esc(recName(rec, w))}</th><th>${tr('rp.placed')}</th></tr></thead><tbody>${rows}
+        <tr><td><small>${tr('rp.had')}</small></td><td>${h.balance[b]}</td><td>${h.balance[w]}</td><td></td></tr>
+        <tr><td><small>${tr('rp.left')}</small></td><td>${h.remaining[b]}</td><td>${h.remaining[w]}</td><td></td></tr>
+        <tr><td><small>${tr('rp.carry')}</small></td><td>${h.carry[b]}</td><td>${h.carry[w]}</td><td></td></tr>
       </tbody></table>`;
   }
 
   // ───────── 이벤트 ─────────
   const handlers = {
+    'lang': (b) => setLang(b.dataset.lang),
+    'lang-flip': () => { $('#menu').hidden = true; setLang(window.I18N.lang === 'ko' ? 'en' : 'ko'); },
     'show-create': () => showSettings('create'),
     'show-solo': () => showSettings('solo'),
     'show-join': () => { $('#settings-form').hidden = true; $('#join-form').hidden = false; $('#join-code').focus(); },
     'hide-forms': hideForms,
     'resume': () => { save(K.name, myName()); resumeHosting(); },
-    'discard-resume': () => { if (confirm('저장된 방을 버릴까요?')) { localStorage.removeItem(K.host); refreshResume(); } },
-    'rules': () => { $('#menu').hidden = true; openModal($('#rules-tpl').innerHTML); },
+    'discard-resume': () => { if (confirm(tr('confirm.discard'))) { localStorage.removeItem(K.host); refreshResume(); } },
+    'rules': () => { $('#menu').hidden = true; openModal(tr('rules')); },
     'records': openRecords,
     'open-record': (b) => { const rec = load(K.records, []).find((r) => r.id === b.dataset.id); if (rec) openReplay(rec); },
     'close-modal': closeModal,
@@ -1409,14 +1431,14 @@
     'copy-link': async (b) => {
       const url = $('#share-link').value;
       if (navigator.share && matchMedia('(pointer: coarse)').matches) {
-        try { await navigator.share({ title: '포인트오목', text: `포인트오목 한 판! 방 코드 ${app.host.code}`, url }); return; } catch (e) { /* 취소 */ }
+        try { await navigator.share({ title: tr('doc.title'), text: tr('share.text', { code: app.host.code }), url }); return; } catch (e) { /* 취소 */ }
       }
       let ok = false;
       try { await navigator.clipboard.writeText(url); ok = true; } catch (e) {
         const inp = $('#share-link'); inp.select();
         try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
       }
-      toast(ok ? '링크를 복사했습니다.' : '복사하지 못했습니다. 주소를 직접 복사해 주세요.');
+      toast(tr(ok ? 'toast.copied' : 'toast.copyFail'));
       b.blur();
     },
     'start': () => { if (app.host && app.host.remote.connected) app.host.startGame(); },
@@ -1427,7 +1449,7 @@
       act({ t: 'pause', on: !(m.pauses && m.pauses.manual != null) });
     },
     'mute': () => { Sound.muted = !Sound.muted; save(K.mute, Sound.muted); if (!Sound.muted) Sound.clack(); if (app.view) renderBar(); },
-    'resign': () => { $('#menu').hidden = true; if (app.view && app.view.phase !== 'over' && confirm('정말 기권할까요?')) act({ t: 'resign' }); },
+    'resign': () => { $('#menu').hidden = true; if (app.view && app.view.phase !== 'over' && confirm(tr('confirm.resign'))) act({ t: 'resign' }); },
     'confirm-sel': () => { if (app.sel.triple) act({ t: 'select', cells: app.sel.triple }); },
     'clear-sel': () => { app.sel.triple = null; app.sel.anchor = null; act({ t: 'draftSel', cells: null }); renderSel(); renderPanel(); },
     'bet-inc': (b) => { const k = +b.dataset.k; setDraft(k, app.draft.bets[k] + 1, true); },
@@ -1445,7 +1467,7 @@
     },
     'confirm-bet': () => {
       const v = app.view, err = PO.validateBets(app.draft.bets, v.balance);
-      if (err) { toast(err, 'err'); return; }
+      if (err) { toast(tr('err.' + err.code, err), 'err'); return; }
       act({ t: 'bet', bets: app.draft.bets.slice() });
     },
     'emote': (b) => { const e = b.dataset.e; act({ t: 'emote', e }); if (app.view) showBubble(app.view.me, e); },
@@ -1507,7 +1529,7 @@
   $('#join-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const code = $('#join-code').value.trim().toUpperCase();
-    if (!/^[A-Z0-9]{4}$/.test(code)) { toast('방 코드는 4자리입니다.', 'err'); $('#join-code').focus(); return; }
+    if (!/^[A-Z0-9]{4}$/.test(code)) { toast(tr('toast.code4'), 'err'); $('#join-code').focus(); return; }
     save(K.name, myName());
     startJoining(code);
   });
@@ -1526,6 +1548,8 @@
   setInterval(updateTimer, 200);
 
   // ───────── 처음 열었을 때 ─────────
+  window.I18N.applyStatic();
+  setSettingsLabels();
   $('#name').value = load(K.name, '') || '';
   writeSettingsForm(load(K.settings, null));
   refreshResume();
@@ -1534,7 +1558,7 @@
     $('#join-code').value = joinParam;
     $('#join-form').hidden = false;
     if (myName()) startJoining(joinParam);
-    else { $('#name').focus(); toast('이름을 적고 입장을 누르세요.'); }
+    else { $('#name').focus(); toast(tr('toast.enterName')); }
   }
 
   // 테스트·디버깅용

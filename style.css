@@ -71,6 +71,14 @@ small { color: var(--muted); }
 .hero-copy { position: absolute; z-index: 1; left: clamp(18px, 5vw, 48px); top: 50%; transform: translateY(-50%); max-width: min(46ch, 52%); }
 .hero h1 { font-size: clamp(38px, 7vw, 68px); line-height: 1.05; margin-top: 4px; }
 .hero .sub { color: #d6cfe0; margin: 12px 0 0; font-size: clamp(13px, 1.6vw, 16px); text-wrap: pretty; }
+.lang-toggle {
+  position: absolute; z-index: 2; top: 14px; right: 14px; display: inline-flex; gap: 2px; padding: 3px;
+  border-radius: 11px; background: rgba(20, 18, 27, .72); border: 1px solid var(--line); backdrop-filter: blur(4px);
+}
+.lang-toggle button { border: 0; background: transparent; padding: 6px 13px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--muted); min-height: 34px; }
+.lang-toggle button:hover { color: var(--fg); }
+.lang-toggle button[aria-pressed="true"] { background: var(--brass); color: var(--brass-ink); }
+.seg span i { font-style: normal; }
 .lobby-body { display: flex; flex-direction: column; gap: 16px; margin-top: 18px; }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field > span { font-size: 13px; color: var(--muted); font-weight: 500; }
